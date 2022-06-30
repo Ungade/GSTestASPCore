@@ -1,0 +1,4 @@
+**/bin
+**/[Dd]ebug
+*.db*
+**/obj

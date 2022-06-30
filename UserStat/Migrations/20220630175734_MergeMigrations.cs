@@ -2,7 +2,7 @@
 
 namespace UserStat.Migrations
 {
-    public partial class JSONAttrAddToModel : Migration
+    public partial class MergeMigrations : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

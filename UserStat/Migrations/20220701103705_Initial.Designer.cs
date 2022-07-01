@@ -9,8 +9,8 @@ using UserStat.Models;
 namespace UserStat.Migrations
 {
     [DbContext(typeof(UserQueryContext))]
-    [Migration("20220630175734_MergeMigrations")]
-    partial class MergeMigrations
+    [Migration("20220701103705_Initial")]
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

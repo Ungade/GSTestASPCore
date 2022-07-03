@@ -59,7 +59,6 @@ namespace UserStat
         }
 
         
-
         private async Task ProccessQueries(UserQueryContext context)
         {
             var allToProcces =await context.Queries.Where(r=>r.Percent<100).ToListAsync();            
@@ -69,7 +68,18 @@ namespace UserStat
                 if (s != null)
                 {
                     var elapsedTime = DateTime.Now - s.queryCreateTime;
-                    query.Percent = (ushort)(elapsedTime.TotalMilliseconds * 100 / taskProccesTime);
+                    if(elapsedTime.TotalMilliseconds>taskProccesTime)
+                    {
+                        var newElapsed = taskProccesTime * query.Percent / 100; 
+                        var newSpan = TimeSpan.FromMilliseconds(newElapsed);
+                        var newStartDate = DateTime.Now - newSpan;
+                        s.queryCreateTime = newStartDate;
+                        context.Update(s);
+                        await context.SaveChangesAsync();
+                        elapsedTime = DateTime.Now-newStartDate;
+                    }
+                    var calc = Convert.ToUInt16(elapsedTime.TotalMilliseconds * 100 / taskProccesTime);
+                    query.Percent = calc;
                 }
                 else
                     throw new System.Data.DataException("Bridge not created");

@@ -3,9 +3,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 
-using System.Collections.Generic;
 
 
 namespace UserStatTest
@@ -56,7 +57,8 @@ namespace UserStatTest
             TestContext.WriteLine("Response queryGuid = "+resGuid.ToString());
             Assert.AreEqual(resGuid.ToString(),res);
             await GetByQueryID_WhenProccesLess100Percent_ShouldReturn_QueryResulAsNull(resGuid.ToString(), userId);
-            await CheckResultAt_30_45_60_seconds_ShouldReturn_50_75_100_Percent(resGuid.ToString());
+            await WaitFor_BackGroundHostService_Calculate(resGuid.ToString());
+            await WhenProgressIs100Percent_Then_APIShouldReturn_UserID_And_CountSignIn(userId,resGuid.ToString());
         }
 
        
@@ -70,51 +72,34 @@ namespace UserStatTest
             
         }
 
-        public async Task CheckResultAt_30_45_60_seconds_ShouldReturn_50_75_100_Percent(string queryGuid)
+        private async Task WaitFor_BackGroundHostService_Calculate(string queryGuid)
         {
-            
-            var wait = 5000;
-            var timer = 0;
-            var timerPlus = 50;
-            
-            while(timer <wait)
+            var wait = 20;
+            using (var scope = factory.Services.CreateScope())
             {
-                timer+=timerPlus;
-                await Task.Delay(timerPlus);
-                
-                var res=0;
-                testRequestTimesPercents.TryGetValue(timer,out res);
-                if(timer==res)
-                {
-                    var uri = new System.Uri(@"https://localhost:5001/report/info/"+queryGuid);
-                    var response = await client.GetAsync(uri);
-                    var result = await response.Content.ReadFromJsonAsync<UserStat.Models.Query>();
-
-                    TestContext.WriteLine(result.QueryGuid);
-                    TestContext.WriteLine(result.QueryId.ToString());
-                    TestContext.WriteLine(result.Percent.ToString());
-                    
-                    Assert.AreEqual(res,result.Percent);
-                }
+                var conf = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+                var parsed = int.TryParse( conf["ProccesTime"], out wait);
             }
 
-            
+            var timer = 0;
+            var timerPlus = 100;
+            while (timer < wait)
+            {
+                timer += timerPlus;
+                await Task.Delay(timerPlus);
+            }
         }
 
-        private static Dictionary<int, int> testRequestTimesPercents = new Dictionary<int, int>()
+        private async Task WhenProgressIs100Percent_Then_APIShouldReturn_UserID_And_CountSignIn(string userID, string queryGuid)
         {
-            {500,10},
-            {2500,50},
-            {3750,75},
-            {5000,100}
-            
-        };
+            var uri = new System.Uri(@"https://localhost:5001/report/info/" + queryGuid);
+            var response = await client.GetAsync(uri);
+            var result = await response.Content.ReadFromJsonAsync<UserStat.Models.Query>();
 
-        
-
-
-
-        
+            Assert.AreEqual(100, result.Percent);
+            Assert.AreEqual(userID,result.QueryResult.UserId);
+            Assert.IsTrue(result.QueryResult.Count_sign_in>=1);
+        }
 
         [ClassCleanup]
         public static void ClassCleanup()

@@ -12,6 +12,8 @@ namespace UserStat.Models
         public string QueryGuid{get;set;}
         public ushort Percent{get;set;}
         public QueryResult QueryResult{get;set;}
+
+        public QueriesBridge QueriesBridge{get;set;}
     }
 
     public class UserQuery
@@ -43,7 +45,12 @@ namespace UserStat.Models
         [Key]
         public long QueriesBridgeId{get;set;}
         public long UserQueryId{get;set;}
+        
+        [JsonIgnore]
         public long QueryId{get;set;}
+        [JsonIgnore]
+        public Query Query{get;set;}
+
         public DateTime queryCreateTime{get;set;}
     }
 }

@@ -18,6 +18,7 @@ namespace UserStat
         private Task scheduler;
         private readonly IServiceScopeFactory serviceScopeFactory;
         private readonly float taskProccesTime;
+        public bool IsStarted;
         public QueriesProccessor(IServiceScopeFactory serviceScopeFactory)
         {
             this.serviceScopeFactory = serviceScopeFactory;
@@ -38,17 +39,22 @@ namespace UserStat
             using(var scope = serviceScopeFactory.CreateScope())
             {
                 var userQueryContext = scope.ServiceProvider.GetRequiredService<UserQueryContext>();
-
+                IsStarted=true;
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    //check db table
-                    //if not completed work then resume
-                    //if new work errands then start new
-                    await ProccessQueries(userQueryContext);
-                    await Task.Delay(100);
+                    try
+                    {
+                        await ProccessQueries(userQueryContext);
+                        await Task.Delay(100, cancellationToken);
+                    }
+                    catch(OperationCanceledException)
+                    {
+                        return;
+                    }
 
 
                 }
+                IsStarted=false;
             }
         }
 
@@ -59,14 +65,22 @@ namespace UserStat
             var allToProcces =await context.Queries.Where(r=>r.Percent<100).ToListAsync();            
             foreach (var query in allToProcces)
             {
-                var s = await context.QueriesBridges.Where(r=>r.QueryId==query.QueryId).FirstAsync();
-                var elapsedTime = DateTime.Now - s.queryCreateTime;
-                query.Percent =  (ushort)(elapsedTime.TotalMilliseconds*100/taskProccesTime);
+                var s = await context.QueriesBridges.Where(r=>r.QueryId==query.QueryId).FirstOrDefaultAsync();
+                if (s != null)
+                {
+                    var elapsedTime = DateTime.Now - s.queryCreateTime;
+                    query.Percent = (ushort)(elapsedTime.TotalMilliseconds * 100 / taskProccesTime);
+                }
+                else
+                    throw new System.Data.DataException("Bridge not created");
             }
-            if(allToProcces.Count>0)
+            if (allToProcces != null)
             {
-                context.UpdateRange(allToProcces);
-                await context.SaveChangesAsync();
+                if (allToProcces.Count > 0)
+                {
+                    context.UpdateRange(allToProcces);
+                    await context.SaveChangesAsync();
+                }
             }
         }
 

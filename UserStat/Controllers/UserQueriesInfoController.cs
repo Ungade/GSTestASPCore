@@ -19,12 +19,14 @@ namespace UserStat.Controllers
         [HttpGet("{queryGUID}")]
         public async Task<ActionResult<Query>> GetUserQueryResults(string queryGUID)
         {
-            var userQuery = await context.Queries.SingleOrDefaultAsync(query=>query.QueryGuid==queryGUID );
-            if(userQuery==null)
+            var query = await context.Queries.SingleOrDefaultAsync(query=>query.QueryGuid==queryGUID );
+            if(query==null)
                 return NotFound();
-            if(userQuery.Percent>=100)
-                userQuery = await context.Queries.Include(r=>r.QueryResult).SingleOrDefaultAsync(query=>query.QueryGuid==queryGUID);
-            return userQuery;
+            if(query.Percent>=100)
+                query = await context.Queries.Include(r=>r.QueryResult).SingleOrDefaultAsync(query=>query.QueryGuid==queryGUID);
+            if(query==null)
+                return NotFound();
+            return query;
 
         }
 

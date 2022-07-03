@@ -32,8 +32,15 @@ namespace UserStat.Controllers
                         {
                             Count_sign_in=1,
                             UserId = userQuery.UserId,
+                        },
+                        QueriesBridge = new QueriesBridge()
+                        {
+                            queryCreateTime = DateTime.Now,
+                            UserQueryId = userQuery.UserQueryId
                         }
+
                     };
+                    
                     context.Add(query);
                     await context.SaveChangesAsync();
             }     
@@ -43,6 +50,7 @@ namespace UserStat.Controllers
                 queryResult.QueryResult.Count_sign_in++;
                 context.Update(queryResult);
                 await context.SaveChangesAsync();
+                
             }       
             
             var queryGuid = await context.Queries.SingleOrDefaultAsync(queryId=>queryId.QueryResult.UserId==userQuery.UserId);
